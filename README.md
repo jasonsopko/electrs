@@ -1,3 +1,17 @@
+## Bitcoin Knots BLAKE2b chain
+
+`blake2b` is romanz/electrs 0.10.10 plus support for the Bitcoin Knots proof-of-work change ([Knots #359](https://github.com/bitcoinknots/bitcoin/pull/359)): 164-byte header v2 blocks are parsed, hashed (`src/knots.rs`, adapted from Retropex/electrs) and stored, on mainnet from height 961640 and on testnet4 from 150308. Upstream declined it ([#1333](https://github.com/romanz/electrs/pull/1333)), so this fork carries it and is rebased onto upstream releases. For a pruned node see [paulscode/electrs-pruned](https://github.com/paulscode/electrs-pruned), which also carries the Electrum protocol 1.8 header proposal that wallets need.
+
+### Running it against a Knots node
+
+1. Build as upstream ([doc/install.md](doc/install.md)): `git clone -b blake2b https://github.com/jasonsopko/electrs && cd electrs && cargo build --locked --release`.
+2. Configure as upstream ([doc/config.md](doc/config.md)); nothing is BLAKE2b-specific. The node must be Bitcoin Knots 29.4.1 or later. An unpatched electrs against that node crash-loops at the first v2 header.
+3. Start with a fresh `db_dir`. Whether a database left by an unpatched electrs can be continued is untested.
+4. Check it: `python3 contrib/knots-check.py 127.0.0.1 50001` runs nine Electrum calls against the server: the tip is a 164-byte header with the v2 bit, 961639 is still 80 bytes, 961640 is 164, `block.headers` across the fork concatenates both sizes, and a scripthash history and coinbase transaction from a BLAKE2b block come back.
+5. mempool: point the backend's `ELECTRUM` block in `mempool-config.json` at it (`HOST`, `PORT`, `TLS_ENABLED: false` for a plain local socket). The rest of the mempool side is in [jasonsopko/mempool, branch `knots-blake2b`](https://github.com/jasonsopko/mempool/blob/knots-blake2b/KNOTS-BLAKE2B.md).
+
+Wallets that verify headers themselves (Electrum, Sparrow) need to understand the v2 format before they follow the chain; that is a client change, see [paulscode's proposal](https://github.com/paulscode/electrs-pruned/blob/main/docs/electrum-header-v2.md).
+
 ![Logo](logo/logo.svg)
 
 # Electrum Server in Rust
