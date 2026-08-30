@@ -17,7 +17,7 @@ Wallets that verify headers themselves (Electrum, Sparrow) need to understand th
 # Electrum Server in Rust
 
 [![CI](https://github.com/romanz/electrs/actions/workflows/rust.yml/badge.svg)](https://github.com/romanz/electrs/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/romanz/electrs/compare)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/jasonsopko/electrs/compare)
 [![crates.io](https://img.shields.io/crates/v/electrs.svg)](https://crates.io/crates/electrs)
 [![gitter.im](https://badges.gitter.im/romanz/electrs.svg)](https://gitter.im/romanz/electrs)
 
@@ -64,12 +64,9 @@ which is better optimized for public usage at the cost of consuming *significant
  * [`txindex`](https://github.com/bitcoinbook/bitcoinbook/blob/develop/ch03_bitcoin-core.adoc#txindex) is not required for the Bitcoin node
  * Uses a single [RocksDB](https://github.com/spacejam/rust-rocksdb) database, for better consistency and crash recovery
 
-## Altcoins
+## Altcoins, and why this fork exists
 
-Altcoins are **not supported**!
-Forks of Bitcoin codebase that relax the consensus rules (hard forks) are also **not supported**.
-
-You may be able to find a fork of electrs that does support them, look around or make your own, just don't file issues/PRs here.
+Upstream electrs does not support altcoins or hard forks of Bitcoin, and closed the BLAKE2b change under that policy ([#1333](https://github.com/romanz/electrs/pull/1333)). The chain this fork indexes is not an altcoin: it is Bitcoin, carried on by Bitcoin Knots after a change to the proof-of-work hash. The ledger, the coins, addresses, scripts and transaction rules are all unchanged. What changed at height 961640 is the function the block header is checked against (BLAKE2b in place of double SHA256, in a 164-byte header). That is a hard fork in the technical sense, since software that does not know the new header cannot follow the chain, and it is exactly why this fork is needed. Issues and pull requests about the BLAKE2b chain are welcome here; do not file them upstream.
 
 ## Index database
 
