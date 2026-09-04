@@ -12,6 +12,16 @@
 
 Wallets that verify headers themselves (Electrum, Sparrow) need to understand the v2 format before they follow the chain; that is a client change, see [paulscode's proposal](https://github.com/paulscode/electrs-pruned/blob/main/docs/electrum-header-v2.md).
 
+### Verifying the signatures
+
+Commits and tags on this branch are signed with
+
+```
+89F0 E41D 72CE 523F 4AA1 CDB6 92CD FFB7 C40C D1BA   Jason Sopko <jason@sopko.net>, RSA-4096, created 2026-08-22
+```
+
+Fetch it from https://github.com/jasonsopko.gpg, https://sopko.net/jason.gpg.txt, or [Keybase](https://keybase.io/jasonsopko), then `git verify-tag v0.10.10-blake2b.1`. My older key, `0F48 86DC D57D A2EC 2D2C 9B57 EA70 527E E3B8 AE8D` (2022), is still published on sopko.net and Keybase but has never signed anything here, and I no longer hold its secret half, so do not encrypt to it.
+
 ![Logo](logo/logo.svg)
 
 # Electrum Server in Rust
