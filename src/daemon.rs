@@ -21,13 +21,29 @@ use crate::{
     types::SerBlock,
 };
 
+/// The subset of `getblockchaininfo` electrs uses. Bitcoin Knots 29.4.2 (knots#420)
+/// drops the `difficulty` field on BLAKE2b (header v2) tips, and the typed result in
+/// bitcoincore_rpc treats that field as required, so decode only what is needed here.
+#[derive(serde_derive::Deserialize)]
+struct BlockchainInfo {
+    blocks: u64,
+    headers: u64,
+    #[serde(rename = "initialblockdownload")]
+    initial_block_download: bool,
+    pruned: bool,
+}
+
+fn get_blockchain_info(client: &Client) -> bitcoincore_rpc::Result<BlockchainInfo> {
+    client.call("getblockchaininfo", &[])
+}
+
 enum PollResult {
     Done(Result<()>),
     Retry,
 }
 
 fn rpc_poll(client: &mut Client, skip_block_download_wait: bool) -> PollResult {
-    match client.get_blockchain_info() {
+    match get_blockchain_info(client) {
         Ok(info) => {
             if skip_block_download_wait {
                 // bitcoind RPC is available, don't wait for block download to finish
@@ -133,7 +149,7 @@ impl Daemon {
         if !network_info.network_active {
             bail!("electrs requires active bitcoind p2p network");
         }
-        let info = rpc.get_blockchain_info()?;
+        let info = get_blockchain_info(&rpc)?;
         if info.pruned {
             bail!("electrs requires non-pruned bitcoind node");
         }
