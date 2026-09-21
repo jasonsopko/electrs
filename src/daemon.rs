@@ -228,11 +228,17 @@ impl Daemon {
     }
 
     pub(crate) fn get_block_txids(&self, blockhash: BlockHash) -> Result<Vec<Txid>> {
-        Ok(self
+        #[derive(serde_derive::Deserialize)]
+        struct BlockTxids {
+            tx: Vec<Txid>,
+        }
+    
+        let result: BlockTxids = self
             .rpc
-            .get_block_info(&blockhash)
-            .context("failed to get block txids")?
-            .tx)
+            .call("getblock", &[json!(blockhash), json!(1)])
+            .context("failed to get block txids")?;
+    
+        Ok(result.tx)
     }
 
     pub(crate) fn get_mempool_info(&self) -> Result<json::GetMempoolInfoResult> {
