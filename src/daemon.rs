@@ -37,6 +37,18 @@ fn get_blockchain_info(client: &Client) -> bitcoincore_rpc::Result<BlockchainInf
     client.call("getblockchaininfo", &[])
 }
 
+/// `getblock` verbosity 1 includes `difficulty` on Bitcoin Core, but Knots can
+/// omit it for BLAKE2b blocks. Merkle proofs only need the transaction IDs.
+#[derive(serde_derive::Deserialize)]
+struct BlockTxids {
+    tx: Vec<Txid>,
+}
+
+fn get_block_txids(client: &Client, blockhash: BlockHash) -> bitcoincore_rpc::Result<Vec<Txid>> {
+    let block: BlockTxids = client.call("getblock", &[json!(blockhash), json!(1)])?;
+    Ok(block.tx)
+}
+
 enum PollResult {
     Done(Result<()>),
     Retry,
@@ -228,11 +240,7 @@ impl Daemon {
     }
 
     pub(crate) fn get_block_txids(&self, blockhash: BlockHash) -> Result<Vec<Txid>> {
-        Ok(self
-            .rpc
-            .get_block_info(&blockhash)
-            .context("failed to get block txids")?
-            .tx)
+        get_block_txids(&self.rpc, blockhash).context("failed to get block txids")
     }
 
     pub(crate) fn get_mempool_info(&self) -> Result<json::GetMempoolInfoResult> {
@@ -349,5 +357,54 @@ where
             Ok(values)
         }
         Err(err) => bail!("batch {} request failed: {}", name, err),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitcoin::hashes::Hash;
+    use std::fmt;
+
+    struct BlockWithoutDifficulty;
+
+    impl jsonrpc::Transport for BlockWithoutDifficulty {
+        fn send_request(
+            &self,
+            request: jsonrpc::Request,
+        ) -> std::result::Result<jsonrpc::Response, jsonrpc::Error> {
+            assert_eq!(request.method, "getblock");
+            let params: Value = serde_json::from_str(request.params.unwrap().get()).unwrap();
+            assert_eq!(params, json!([BlockHash::all_zeros(), 1]));
+            Ok(jsonrpc::Response {
+                result: Some(jsonrpc::arg(json!({
+                    "hash": BlockHash::all_zeros(),
+                    "height": 973567,
+                    "tx": [Txid::all_zeros()],
+                    "nTx": 1,
+                }))),
+                error: None,
+                id: request.id,
+                jsonrpc: Some("2.0".to_owned()),
+            })
+        }
+
+        fn send_batch(
+            &self,
+            _: &[jsonrpc::Request],
+        ) -> std::result::Result<Vec<jsonrpc::Response>, jsonrpc::Error> {
+            unreachable!()
+        }
+
+        fn fmt_target(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("test")
+        }
+    }
+
+    #[test]
+    fn get_block_txids_without_difficulty() {
+        let client = Client::from_jsonrpc(jsonrpc::Client::with_transport(BlockWithoutDifficulty));
+        let txids = get_block_txids(&client, BlockHash::all_zeros()).unwrap();
+        assert_eq!(txids, vec![Txid::all_zeros()]);
     }
 }

@@ -14,3 +14,4 @@ tests/bin
 .idea/
 *.txt
 *.json
+!src/knots_vectors.json
