@@ -37,6 +37,14 @@ fn get_blockchain_info(client: &Client) -> bitcoincore_rpc::Result<BlockchainInf
     client.call("getblockchaininfo", &[])
 }
 
+/// The one `getblock` field electrs uses. Knots 29.4.2 (knots#420) also drops
+/// `difficulty` from `getblock` on header v2 blocks, which `json::GetBlockResult`
+/// requires, so every merkle proof for a BLAKE2b block failed to decode.
+#[derive(serde_derive::Deserialize)]
+struct BlockTxids {
+    tx: Vec<Txid>,
+}
+
 enum PollResult {
     Done(Result<()>),
     Retry,
@@ -228,11 +236,11 @@ impl Daemon {
     }
 
     pub(crate) fn get_block_txids(&self, blockhash: BlockHash) -> Result<Vec<Txid>> {
-        Ok(self
+        let block: BlockTxids = self
             .rpc
-            .get_block_info(&blockhash)
-            .context("failed to get block txids")?
-            .tx)
+            .call("getblock", &[json!(blockhash), json!(1)])
+            .context("failed to get block txids")?;
+        Ok(block.tx)
     }
 
     pub(crate) fn get_mempool_info(&self) -> Result<json::GetMempoolInfoResult> {
