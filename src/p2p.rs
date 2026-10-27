@@ -322,7 +322,9 @@ fn build_version_message() -> NetworkMessage {
         .expect("Time error")
         .as_secs() as i64;
 
-    let services = p2p::ServiceFlags::NONE;
+    // Knots 29.4.3 (knots#425) sends headers and blocks above the fork only to peers that advertise
+    // NODE_BLAKE2B (bit 28), whitelisted or not. electrs reads the v2 headers, so it says so.
+    let services = p2p::ServiceFlags::from(1u64 << 28);
 
     NetworkMessage::Version(message_network::VersionMessage {
         version: p2p::PROTOCOL_VERSION,
